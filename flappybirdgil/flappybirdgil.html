@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Birdgil</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: skyblue;
+            overflow: hidden;
+        }
+        h1 {
+            font-size: 36px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px black;
+        }
+        canvas {
+            background-color: lightblue;
+            border: 2px solid black;
+        }
+        #score {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 10px;
+        }
+        #retryButton {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: red;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Flappy Birdgil</h1>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas"></canvas>
+    <button id="retryButton" onclick="restartGame()">Retry</button>
+    <audio id="jumpSound" src="https://www.myinstants.com/media/sounds/jump.mp3"></audio>
+    <audio id="hitSound" src="https://www.myinstants.com/media/sounds/hit.mp3"></audio>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("score");
+        const retryButton = document.getElementById("retryButton");
+        const jumpSound = document.getElementById("jumpSound");
+        const hitSound = document.getElementById("hitSound");
+        
+        canvas.width = 400;
+        canvas.height = 500; // Reduced height for a shorter play area
+
+        const birdImages = [new Image(), new Image()];
+        birdImages[0].src = "vergil1.png";
+        birdImages[1].src = "vergil2.png";
+        
+        const pipeImage = new Image();
+        pipeImage.src = "dennis.png";
+
+        let bird, pipes, frame, score, gameOver, birdFrame;
+        
+        function initGame() {
+            birdFrame = Math.floor(Math.random() * 2); // Randomize bird image on reset
+            bird = { x: 50, y: 250, width: 40, height: 30, gravity: 0, lift: -8 };
+            pipes = [];
+            frame = 0;
+            score = 0;
+            gameOver = false;
+            scoreDisplay.textContent = "Score: 0";
+            retryButton.style.display = "none";
+            gameLoop();
+        }
+        
+        function drawBird() {
+            ctx.drawImage(birdImages[birdFrame], bird.x, bird.y, bird.width, bird.height);
+        }
+
+        function drawPipes() {
+            pipes.forEach(pipe => {
+                ctx.drawImage(pipeImage, pipe.x, 0, pipe.width, pipe.top);
+                ctx.drawImage(pipeImage, pipe.x, canvas.height - pipe.bottom, pipe.width, pipe.bottom);
+            });
+        }
+
+        function updateGame() {
+            if (gameOver) return;
+
+            bird.gravity += 0.5;
+            bird.y += bird.gravity;
+            
+            if (frame % 100 === 0) {
+                let pipeHeight = Math.random() * (canvas.height / 2.5); // Increased height slightly
+                pipes.push({ x: canvas.width, width: 50, top: pipeHeight, bottom: 160, passed: false, hitboxOffset: 10 });
+            }
+
+            pipes.forEach(pipe => {
+                pipe.x -= 2;
+                if (pipe.x + pipe.width < 0) pipes.shift();
+                if (
+                    bird.x < pipe.x + pipe.width - pipe.hitboxOffset &&
+                    bird.x + bird.width > pipe.x + pipe.hitboxOffset &&
+                    (bird.y < pipe.top - pipe.hitboxOffset || bird.y + bird.height > canvas.height - pipe.bottom + pipe.hitboxOffset)
+                ) {
+                    endGame();
+                }
+                if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                    pipe.passed = true;
+                    score++;
+                    scoreDisplay.textContent = "Score: " + score;
+                }
+            });
+
+            if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+                endGame();
+            }
+            frame++;
+        }
+
+        function endGame() {
+            gameOver = true;
+            hitSound.play();
+            retryButton.style.display = "block";
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBird();
+            drawPipes();
+            updateGame();
+            if (!gameOver) requestAnimationFrame(gameLoop);
+        }
+
+        function restartGame() {
+            initGame();
+        }
+
+        window.addEventListener("keydown", () => {
+            if (!gameOver) {
+                bird.gravity = bird.lift;
+                jumpSound.play();
+            }
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>
